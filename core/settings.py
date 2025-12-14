@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'agenda.apps.AgendaConfig',
     'assistencia.apps.AssistenciaConfig',
     'estoque.apps.EstoqueConfig',
+    'atendimentos.apps.AtendimentosConfig',  # Sistema de Atendimentos em Campo
     'whatsapp_integration.apps.WhatsappIntegrationConfig',
     'ai_assistant.apps.AiAssistantConfig',
     'api.apps.ApiConfig',
