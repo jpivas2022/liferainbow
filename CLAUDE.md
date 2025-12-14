@@ -341,6 +341,19 @@ O Life Rainbow pode futuramente ter um app Flutter similar ao iCiclo, mas por en
 
 ## 🔐 Credenciais e Acessos
 
+### OpenAI API (GPT-4o-mini)
+| Campo | Valor |
+|-------|-------|
+| **Modelo** | gpt-4o-mini |
+| **Max Tokens** | 2000 |
+| **API Key** | Compartilhada com iCiclo (mesmo projeto GCP) |
+| **Localização** | `.env` local (não commitado) |
+
+**Recuperar key do iCiclo (se necessário):**
+```bash
+grep OPENAI_API_KEY /Users/iciclodev/Development/iciclo-django/.env
+```
+
 ### GitHub
 | Campo | Valor |
 |-------|-------|
