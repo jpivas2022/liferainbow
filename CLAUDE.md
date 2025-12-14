@@ -339,6 +339,47 @@ O Life Rainbow pode futuramente ter um app Flutter similar ao iCiclo, mas por en
 
 ---
 
+## 🔐 Credenciais e Acessos
+
+### GitHub
+| Campo | Valor |
+|-------|-------|
+| **Repositório** | https://github.com/jpivas2022/liferainbow |
+| **Usuário** | jpivas2022 |
+| **Token** | Armazenado no macOS Keychain (git-credential-osxkeychain) |
+| **Branch Principal** | main |
+
+**Recuperar token (se necessário):**
+```bash
+git credential-osxkeychain get <<EOF
+protocol=https
+host=github.com
+EOF
+```
+
+### Git Config
+```bash
+git config user.name "Jucimar Pivetta"
+git config user.email "jucimar.liferainbow@gmail.com"
+```
+
+### Comandos Git Úteis
+```bash
+# Status
+git status
+
+# Commit
+git add -A && git commit -m "feat: descrição"
+
+# Push
+git push origin main
+
+# Pull
+git pull origin main
+```
+
+---
+
 ## 🆘 Troubleshooting
 
 ### Erro de importação circular
