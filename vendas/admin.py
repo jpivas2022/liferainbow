@@ -17,8 +17,9 @@ class ItemVendaInline(admin.TabularInline):
     """Inline para itens da venda."""
     model = ItemVenda
     extra = 1
-    fields = ['tipo_item', 'equipamento', 'produto', 'descricao', 'quantidade', 'valor_unitario', 'desconto']
-    autocomplete_fields = ['equipamento', 'produto']
+    fields = ['modelo', 'equipamento', 'quantidade', 'valor_unitario', 'desconto', 'valor_total']
+    autocomplete_fields = ['equipamento', 'modelo']
+    readonly_fields = ['valor_total']
 
 
 class ParcelaInline(admin.TabularInline):
@@ -33,30 +34,42 @@ class ParcelaInline(admin.TabularInline):
 class VendaAdmin(admin.ModelAdmin):
     """Admin para vendas."""
     list_display = [
-        'numero', 'cliente', 'consultor', 'data_venda',
-        'valor_total_formatado', 'status_badge', 'tipo_venda', 'saldo_devedor'
+        'numero', 'cliente', 'vendedor', 'data_venda',
+        'valor_total_formatado', 'status_badge', 'forma_pagamento', 'saldo_devedor'
     ]
-    list_filter = ['status', 'tipo_venda', 'forma_pagamento', 'consultor', 'data_venda']
-    search_fields = ['numero', 'cliente__nome', 'consultor__first_name']
-    readonly_fields = ['numero', 'data_venda', 'atualizado_em', 'valor_total']
-    autocomplete_fields = ['cliente', 'consultor', 'equipamento_principal']
+    list_filter = ['status', 'forma_pagamento', 'vendedor', 'data_venda', 'tipo_entrega']
+    search_fields = ['numero', 'cliente__nome', 'vendedor__first_name']
+    readonly_fields = ['numero', 'created_at', 'updated_at', 'valor_total']
+    autocomplete_fields = ['cliente', 'vendedor']
     date_hierarchy = 'data_venda'
 
     fieldsets = (
         ('Identificação', {
-            'fields': ('numero', 'cliente', 'consultor')
+            'fields': ('numero', 'cliente', 'vendedor')
         }),
         ('Detalhes da Venda', {
-            'fields': ('tipo_venda', 'equipamento_principal', 'forma_pagamento', 'parcelas_total')
+            'fields': ('forma_pagamento', 'numero_parcelas', 'data_primeiro_vencimento')
         }),
         ('Valores', {
-            'fields': ('valor_produtos', 'valor_servicos', 'desconto', 'valor_frete', 'valor_total')
+            'fields': ('valor_produtos', 'desconto', 'acrescimo', 'valor_frete', 'valor_total')
+        }),
+        ('Entrega', {
+            'fields': ('tipo_entrega', 'data_entrega', 'entregue'),
+            'classes': ('collapse',)
+        }),
+        ('Comissão', {
+            'fields': ('pontos', 'comissao'),
+            'classes': ('collapse',)
         }),
         ('Status', {
-            'fields': ('status', 'data_venda', 'atualizado_em')
+            'fields': ('status', 'data_venda', 'nota_fiscal')
         }),
         ('Observações', {
-            'fields': ('observacoes',),
+            'fields': ('observacoes', 'lancamento'),
+            'classes': ('collapse',)
+        }),
+        ('Datas do Sistema', {
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
@@ -69,10 +82,9 @@ class VendaAdmin(admin.ModelAdmin):
 
     def status_badge(self, obj):
         cores = {
-            'orcamento': '#3498db',
             'pendente': '#f39c12',
-            'aprovada': '#27ae60',
-            'finalizada': '#2ecc71',
+            'parcial': '#3498db',
+            'concluida': '#27ae60',
             'cancelada': '#e74c3c',
         }
         cor = cores.get(obj.status, '#3498db')
@@ -84,7 +96,7 @@ class VendaAdmin(admin.ModelAdmin):
     status_badge.short_description = "Status"
 
     def saldo_devedor(self, obj):
-        total_pago = obj.parcelas.filter(status='pago').aggregate(
+        total_pago = obj.parcelas.filter(status='paga').aggregate(
             total=Sum('valor_pago')
         )['total'] or Decimal('0')
         saldo = obj.valor_total - total_pago
@@ -97,15 +109,15 @@ class VendaAdmin(admin.ModelAdmin):
         return format_html('<span style="color: green;">Quitado</span>')
     saldo_devedor.short_description = "Saldo Devedor"
 
-    actions = ['aprovar_vendas', 'cancelar_vendas']
+    actions = ['marcar_concluida', 'cancelar_vendas']
 
-    @admin.action(description="Aprovar vendas selecionadas")
-    def aprovar_vendas(self, request, queryset):
-        queryset.filter(status='pendente').update(status='aprovada')
+    @admin.action(description="Marcar vendas como concluídas")
+    def marcar_concluida(self, request, queryset):
+        queryset.filter(status='pendente').update(status='concluida')
 
     @admin.action(description="Cancelar vendas selecionadas")
     def cancelar_vendas(self, request, queryset):
-        queryset.exclude(status='finalizada').update(status='cancelada')
+        queryset.exclude(status='concluida').update(status='cancelada')
 
 
 @admin.register(Parcela)
@@ -126,9 +138,9 @@ class ParcelaAdmin(admin.ModelAdmin):
     def status_badge(self, obj):
         cores = {
             'pendente': '#f39c12',
-            'pago': '#27ae60',
-            'atrasado': '#e74c3c',
-            'cancelado': '#95a5a6',
+            'paga': '#27ae60',
+            'atrasada': '#e74c3c',
+            'cancelada': '#95a5a6',
         }
         cor = cores.get(obj.status, '#3498db')
         return format_html(
@@ -144,7 +156,7 @@ class ParcelaAdmin(admin.ModelAdmin):
     def marcar_como_pago(self, request, queryset):
         from django.utils import timezone
         for parcela in queryset.filter(status='pendente'):
-            parcela.status = 'pago'
+            parcela.status = 'paga'
             parcela.data_pagamento = timezone.now().date()
             parcela.valor_pago = parcela.valor
             parcela.save()

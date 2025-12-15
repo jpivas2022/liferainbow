@@ -353,7 +353,7 @@ class ContratoAluguelViewSet(viewsets.ModelViewSet):
 
 class PlanoContaViewSet(viewsets.ModelViewSet):
     """ViewSet para plano de contas."""
-    queryset = PlanoConta.objects.filter(pai__isnull=True)
+    queryset = PlanoConta.objects.filter(conta_pai__isnull=True)
     serializer_class = PlanoContaSerializer
     permission_classes = [IsAuthenticated]
 

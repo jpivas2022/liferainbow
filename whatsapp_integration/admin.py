@@ -15,8 +15,8 @@ class MensagemInline(admin.TabularInline):
     """Inline para mensagens da conversa."""
     model = Mensagem
     extra = 0
-    readonly_fields = ['data_hora', 'direcao', 'tipo', 'conteudo', 'status']
-    fields = ['data_hora', 'direcao', 'tipo', 'conteudo', 'status']
+    readonly_fields = ['created_at', 'direcao', 'tipo', 'conteudo', 'status']
+    fields = ['created_at', 'direcao', 'tipo', 'conteudo', 'status']
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -29,13 +29,13 @@ class MensagemInline(admin.TabularInline):
 class ConversaAdmin(admin.ModelAdmin):
     """Admin para conversas WhatsApp."""
     list_display = [
-        'telefone', 'cliente', 'status_badge', 'ultima_mensagem',
-        'iniciada_em', 'atualizada_em'
+        'telefone', 'cliente', 'status_badge', 'modo_atendimento',
+        'ultima_mensagem', 'created_at', 'updated_at'
     ]
-    list_filter = ['status', 'iniciada_em']
-    search_fields = ['telefone', 'cliente__nome']
+    list_filter = ['status', 'modo_atendimento', 'created_at']
+    search_fields = ['telefone', 'cliente__nome', 'nome_contato']
     autocomplete_fields = ['cliente', 'atendente']
-    readonly_fields = ['iniciada_em', 'atualizada_em', 'waid']
+    readonly_fields = ['created_at', 'updated_at', 'wa_id']
 
     inlines = [MensagemInline]
 
@@ -54,10 +54,10 @@ class ConversaAdmin(admin.ModelAdmin):
     status_badge.short_description = "Status"
 
     def ultima_mensagem(self, obj):
-        msg = obj.mensagens.order_by('-data_hora').first()
+        msg = obj.mensagens.order_by('-created_at').first()
         if msg:
             texto = msg.conteudo[:50] + '...' if len(msg.conteudo) > 50 else msg.conteudo
-            return f"{msg.data_hora.strftime('%d/%m %H:%M')} - {texto}"
+            return f"{msg.created_at.strftime('%d/%m %H:%M')} - {texto}"
         return "-"
     ultima_mensagem.short_description = "Última Mensagem"
 
@@ -65,14 +65,14 @@ class ConversaAdmin(admin.ModelAdmin):
 @admin.register(Mensagem)
 class MensagemAdmin(admin.ModelAdmin):
     """Admin para mensagens (acesso direto)."""
-    list_display = ['conversa', 'direcao_badge', 'tipo', 'conteudo_resumido', 'status_badge', 'data_hora']
-    list_filter = ['direcao', 'tipo', 'status', 'data_hora']
+    list_display = ['conversa', 'direcao_badge', 'tipo', 'conteudo_resumido', 'status_badge', 'created_at']
+    list_filter = ['direcao', 'tipo', 'status', 'created_at']
     search_fields = ['conteudo', 'conversa__telefone']
-    readonly_fields = ['data_hora', 'wamid']
-    date_hierarchy = 'data_hora'
+    readonly_fields = ['created_at', 'wamid']
+    date_hierarchy = 'created_at'
 
     def direcao_badge(self, obj):
-        if obj.direcao == 'enviada':
+        if obj.direcao == 'saida':
             return format_html(
                 '<span style="color: blue;">→ Enviada</span>'
             )
@@ -87,11 +87,11 @@ class MensagemAdmin(admin.ModelAdmin):
 
     def status_badge(self, obj):
         cores = {
+            'enviando': '#3498db',
             'enviada': '#3498db',
             'entregue': '#27ae60',
             'lida': '#2ecc71',
-            'recebida': '#27ae60',
-            'erro': '#e74c3c',
+            'falha': '#e74c3c',
         }
         cor = cores.get(obj.status, '#95a5a6')
         return format_html(
@@ -105,17 +105,17 @@ class MensagemAdmin(admin.ModelAdmin):
 @admin.register(Template)
 class TemplateAdmin(admin.ModelAdmin):
     """Admin para templates WhatsApp."""
-    list_display = ['nome', 'categoria_badge', 'idioma', 'status_badge', 'custo_estimado']
-    list_filter = ['categoria', 'status', 'idioma']
-    search_fields = ['nome', 'conteudo']
-    readonly_fields = ['criado_em', 'atualizado_em']
+    list_display = ['nome', 'categoria_badge', 'idioma', 'status_badge', 'custo_estimado', 'ativo']
+    list_filter = ['categoria', 'status', 'idioma', 'ativo']
+    search_fields = ['nome', 'body_text']
+    readonly_fields = ['created_at', 'updated_at']
 
     fieldsets = (
         ('Identificação', {
-            'fields': ('nome', 'categoria', 'idioma')
+            'fields': ('nome', 'categoria', 'idioma', 'ativo')
         }),
         ('Conteúdo', {
-            'fields': ('cabecalho', 'conteudo', 'rodape', 'variaveis')
+            'fields': ('header_text', 'body_text', 'footer_text', 'variaveis')
         }),
         ('Botões', {
             'fields': ('botoes',),
@@ -124,17 +124,21 @@ class TemplateAdmin(admin.ModelAdmin):
         ('Status', {
             'fields': ('status',)
         }),
+        ('Uso', {
+            'fields': ('descricao_uso',),
+            'classes': ('collapse',)
+        }),
         ('Datas', {
-            'fields': ('criado_em', 'atualizado_em'),
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
 
     def categoria_badge(self, obj):
         cores = {
-            'utility': '#3498db',
-            'marketing': '#9b59b6',
-            'authentication': '#27ae60',
+            'UTILITY': '#3498db',
+            'MARKETING': '#9b59b6',
+            'AUTHENTICATION': '#27ae60',
         }
         cor = cores.get(obj.categoria, '#95a5a6')
         return format_html(
@@ -146,10 +150,9 @@ class TemplateAdmin(admin.ModelAdmin):
 
     def status_badge(self, obj):
         cores = {
-            'rascunho': '#f39c12',
-            'pendente': '#3498db',
-            'aprovado': '#27ae60',
-            'rejeitado': '#e74c3c',
+            'PENDING': '#f39c12',
+            'APPROVED': '#27ae60',
+            'REJECTED': '#e74c3c',
         }
         cor = cores.get(obj.status, '#95a5a6')
         return format_html(
@@ -161,9 +164,9 @@ class TemplateAdmin(admin.ModelAdmin):
 
     def custo_estimado(self, obj):
         custos = {
-            'utility': 'R$ 0,04',
-            'marketing': 'R$ 0,38',
-            'authentication': 'R$ 0,04',
+            'UTILITY': 'R$ 0,04',
+            'MARKETING': 'R$ 0,38',
+            'AUTHENTICATION': 'R$ 0,04',
         }
         return custos.get(obj.categoria, '-')
     custo_estimado.short_description = "Custo/msg"
@@ -174,38 +177,43 @@ class CampanhaMensagemAdmin(admin.ModelAdmin):
     """Admin para campanhas de mensagem."""
     list_display = [
         'nome', 'template', 'status_badge', 'total_destinatarios',
-        'metricas', 'criado_por', 'criada_em'
+        'metricas', 'created_by', 'created_at'
     ]
-    list_filter = ['status', 'template', 'criada_em']
+    list_filter = ['status', 'template', 'created_at']
     search_fields = ['nome']
-    autocomplete_fields = ['template', 'criado_por']
+    autocomplete_fields = ['template', 'created_by', 'filtro_consultor']
     readonly_fields = [
-        'criada_em', 'iniciada_em', 'finalizada_em',
-        'total_enviados', 'total_entregues', 'total_lidos', 'total_erros'
+        'created_at', 'data_inicio', 'data_conclusao',
+        'total_enviados', 'total_entregues', 'total_lidos', 'total_falhas', 'total_respostas'
     ]
 
     fieldsets = (
         ('Identificação', {
             'fields': ('nome', 'descricao', 'template')
         }),
-        ('Destinatários', {
-            'fields': ('destinatarios',),
-            'description': 'JSON com lista de destinatários e variáveis'
+        ('Filtros de Público', {
+            'fields': ('filtro_perfil', 'filtro_segmento', 'filtro_consultor'),
+            'description': 'Filtros para selecionar destinatários'
         }),
         ('Agendamento', {
-            'fields': ('agendada_para',)
+            'fields': ('data_agendada',)
         }),
         ('Status', {
             'fields': ('status',)
         }),
+        ('Custos', {
+            'fields': ('custo_estimado', 'custo_real'),
+            'classes': ('collapse',)
+        }),
         ('Métricas', {
             'fields': (
-                'total_enviados', 'total_entregues', 'total_lidos', 'total_erros'
+                'total_destinatarios', 'total_enviados', 'total_entregues',
+                'total_lidos', 'total_falhas', 'total_respostas'
             ),
             'classes': ('collapse',)
         }),
         ('Auditoria', {
-            'fields': ('criado_por', 'criada_em', 'iniciada_em', 'finalizada_em'),
+            'fields': ('created_by', 'created_at', 'data_inicio', 'data_conclusao'),
             'classes': ('collapse',)
         }),
     )
@@ -214,9 +222,8 @@ class CampanhaMensagemAdmin(admin.ModelAdmin):
         cores = {
             'rascunho': '#95a5a6',
             'agendada': '#3498db',
-            'em_execucao': '#f39c12',
-            'pausada': '#e67e22',
-            'finalizada': '#27ae60',
+            'enviando': '#f39c12',
+            'concluida': '#27ae60',
             'cancelada': '#e74c3c',
         }
         cor = cores.get(obj.status, '#95a5a6')
@@ -226,12 +233,6 @@ class CampanhaMensagemAdmin(admin.ModelAdmin):
             cor, obj.get_status_display()
         )
     status_badge.short_description = "Status"
-
-    def total_destinatarios(self, obj):
-        if obj.destinatarios:
-            return len(obj.destinatarios)
-        return 0
-    total_destinatarios.short_description = "Destinatários"
 
     def metricas(self, obj):
         if obj.total_enviados > 0:
@@ -244,16 +245,12 @@ class CampanhaMensagemAdmin(admin.ModelAdmin):
         return "-"
     metricas.short_description = "Métricas"
 
-    actions = ['iniciar_campanha', 'pausar_campanha', 'cancelar_campanha']
+    actions = ['iniciar_campanha', 'cancelar_campanha']
 
-    @admin.action(description="Iniciar campanha")
+    @admin.action(description="Iniciar/Agendar campanha")
     def iniciar_campanha(self, request, queryset):
         queryset.filter(status='rascunho').update(status='agendada')
 
-    @admin.action(description="Pausar campanha")
-    def pausar_campanha(self, request, queryset):
-        queryset.filter(status='em_execucao').update(status='pausada')
-
     @admin.action(description="Cancelar campanha")
     def cancelar_campanha(self, request, queryset):
-        queryset.exclude(status='finalizada').update(status='cancelada')
+        queryset.exclude(status='concluida').update(status='cancelada')

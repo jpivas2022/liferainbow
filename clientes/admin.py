@@ -24,8 +24,8 @@ class HistoricoInteracaoInline(admin.TabularInline):
     """Inline para histórico de interações."""
     model = HistoricoInteracao
     extra = 0
-    readonly_fields = ['data_hora', 'usuario']
-    fields = ['tipo', 'canal', 'descricao', 'resultado', 'data_hora', 'usuario']
+    readonly_fields = ['created_at', 'usuario']
+    fields = ['tipo', 'direcao', 'descricao', 'resultado', 'created_at', 'usuario']
 
     def has_change_permission(self, request, obj=None):
         return False
@@ -35,50 +35,53 @@ class HistoricoInteracaoInline(admin.TabularInline):
 class ClienteAdmin(admin.ModelAdmin):
     """Admin para clientes."""
     list_display = [
-        'nome', 'telefone', 'email', 'cidade_estado', 'perfil_badge',
-        'status_badge', 'possui_rainbow', 'dias_sem_contato', 'consultor'
+        'nome', 'telefone', 'email', 'perfil_badge',
+        'status_badge', 'possui_rainbow', 'dias_sem_contato', 'consultor_responsavel'
     ]
-    list_filter = ['status', 'perfil', 'possui_rainbow', 'estado', 'consultor']
-    search_fields = ['nome', 'email', 'telefone', 'cpf']
-    readonly_fields = ['data_cadastro', 'atualizado_em', 'ultimo_contato']
-    ordering = ['-data_cadastro']
-    date_hierarchy = 'data_cadastro'
+    list_filter = ['status', 'perfil', 'possui_rainbow', 'segmento', 'consultor_responsavel']
+    search_fields = ['nome', 'email', 'telefone', 'cpf_cnpj']
+    readonly_fields = ['created_at', 'updated_at', 'data_ultimo_contato']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+    autocomplete_fields = ['consultor_responsavel', 'created_by']
 
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('nome', 'email', 'telefone', 'telefone_secundario', 'whatsapp')
+            'fields': ('nome', 'tipo_pessoa', 'email', 'telefone', 'telefone_secundario', 'whatsapp')
         }),
-        ('Dados Pessoais', {
-            'fields': ('cpf', 'data_nascimento', 'profissao', 'renda_estimada'),
+        ('Documentos', {
+            'fields': ('cpf_cnpj', 'inscricao_estadual'),
             'classes': ('collapse',)
         }),
         ('Classificação', {
-            'fields': ('perfil', 'status', 'origem', 'indicado_por', 'consultor')
+            'fields': ('perfil', 'status', 'segmento', 'origem', 'consultor_responsavel')
         }),
         ('Rainbow', {
-            'fields': ('possui_rainbow', 'modelo_rainbow', 'data_compra_rainbow', 'interesse_rainbow')
+            'fields': ('possui_rainbow', 'data_compra_rainbow', 'poder_compra')
         }),
-        ('Endereço Principal', {
-            'fields': ('cidade', 'estado'),
+        ('Acompanhamento', {
+            'fields': ('data_proxima_ligacao', 'data_ultimo_contato', 'status_acompanhamento'),
+            'classes': ('collapse',)
+        }),
+        ('Dados Bancários', {
+            'fields': ('banco', 'agencia', 'conta'),
+            'classes': ('collapse',)
+        }),
+        ('Marketing', {
+            'fields': ('perfil_marketing', 'aceita_whatsapp', 'aceita_email'),
             'classes': ('collapse',)
         }),
         ('Observações', {
-            'fields': ('observacoes', 'tags'),
+            'fields': ('observacoes', 'relatorio'),
             'classes': ('collapse',)
         }),
-        ('Datas', {
-            'fields': ('data_cadastro', 'atualizado_em', 'ultimo_contato'),
+        ('Datas do Sistema', {
+            'fields': ('created_at', 'updated_at', 'created_by'),
             'classes': ('collapse',)
         }),
     )
 
     inlines = [EnderecoInline, HistoricoInteracaoInline]
-
-    def cidade_estado(self, obj):
-        if obj.cidade and obj.estado:
-            return f"{obj.cidade}/{obj.estado}"
-        return "-"
-    cidade_estado.short_description = "Cidade/UF"
 
     def perfil_badge(self, obj):
         cores = {
@@ -101,7 +104,6 @@ class ClienteAdmin(admin.ModelAdmin):
             'ativo': '#27ae60',
             'inativo': '#e74c3c',
             'prospecto': '#f39c12',
-            'perdido': '#95a5a6',
         }
         cor = cores.get(obj.status, '#3498db')
         return format_html(
@@ -112,8 +114,8 @@ class ClienteAdmin(admin.ModelAdmin):
     status_badge.short_description = "Status"
 
     def dias_sem_contato(self, obj):
-        if obj.ultimo_contato:
-            dias = (timezone.now() - obj.ultimo_contato).days
+        if obj.data_ultimo_contato:
+            dias = (timezone.now() - obj.data_ultimo_contato).days
             if dias > 30:
                 return format_html(
                     '<span style="color: red; font-weight: bold;">{} dias</span>',
@@ -150,11 +152,11 @@ class EnderecoAdmin(admin.ModelAdmin):
 @admin.register(HistoricoInteracao)
 class HistoricoInteracaoAdmin(admin.ModelAdmin):
     """Admin para histórico de interações."""
-    list_display = ['cliente', 'tipo', 'canal', 'descricao_resumida', 'data_hora', 'usuario']
-    list_filter = ['tipo', 'canal', 'data_hora']
+    list_display = ['cliente', 'tipo', 'direcao', 'descricao_resumida', 'created_at', 'usuario']
+    list_filter = ['tipo', 'direcao', 'created_at']
     search_fields = ['cliente__nome', 'descricao']
-    readonly_fields = ['data_hora']
-    date_hierarchy = 'data_hora'
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
 
     def descricao_resumida(self, obj):
         if len(obj.descricao) > 50:

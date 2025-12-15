@@ -19,9 +19,9 @@ class ProdutoAdmin(admin.ModelAdmin):
         'codigo', 'nome', 'categoria', 'quantidade_badge',
         'preco_venda_formatado', 'ativo'
     ]
-    list_filter = ['categoria', 'ativo', 'tipo']
+    list_filter = ['categoria', 'ativo']
     search_fields = ['codigo', 'nome', 'codigo_barras']
-    readonly_fields = ['criado_em', 'atualizado_em']
+    readonly_fields = ['created_at', 'updated_at']
     ordering = ['nome']
 
     fieldsets = (
@@ -29,40 +29,44 @@ class ProdutoAdmin(admin.ModelAdmin):
             'fields': ('codigo', 'codigo_barras', 'nome', 'descricao')
         }),
         ('Classificação', {
-            'fields': ('categoria', 'tipo', 'marca', 'modelo_compativel')
+            'fields': ('categoria', 'fornecedor', 'unidade')
         }),
         ('Estoque', {
-            'fields': ('quantidade_atual', 'estoque_minimo', 'estoque_maximo', 'localizacao')
+            'fields': ('estoque_atual', 'estoque_minimo', 'estoque_maximo', 'localizacao')
         }),
         ('Preços', {
-            'fields': ('preco_custo', 'preco_venda', 'margem_lucro')
+            'fields': ('preco_custo', 'preco_venda')
+        }),
+        ('Imagem', {
+            'fields': ('imagem',),
+            'classes': ('collapse',)
         }),
         ('Status', {
             'fields': ('ativo',)
         }),
         ('Datas do Sistema', {
-            'fields': ('criado_em', 'atualizado_em'),
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
 
     def quantidade_badge(self, obj):
-        if obj.quantidade_atual <= obj.estoque_minimo:
+        if obj.estoque_atual <= obj.estoque_minimo:
             return format_html(
                 '<span style="background-color: #e74c3c; color: white; '
                 'padding: 3px 8px; border-radius: 3px;">{} ⚠️</span>',
-                obj.quantidade_atual
+                obj.estoque_atual
             )
-        elif obj.quantidade_atual <= obj.estoque_minimo * 1.5:
+        elif obj.estoque_atual <= obj.estoque_minimo * 1.5:
             return format_html(
                 '<span style="background-color: #f39c12; color: white; '
                 'padding: 3px 8px; border-radius: 3px;">{}</span>',
-                obj.quantidade_atual
+                obj.estoque_atual
             )
         return format_html(
             '<span style="background-color: #27ae60; color: white; '
             'padding: 3px 8px; border-radius: 3px;">{}</span>',
-            obj.quantidade_atual
+            obj.estoque_atual
         )
     quantidade_badge.short_description = "Quantidade"
 
@@ -85,22 +89,47 @@ class ProdutoAdmin(admin.ModelAdmin):
 class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
     """Admin para movimentações de estoque."""
     list_display = [
-        'data_hora', 'produto', 'tipo_badge', 'quantidade_badge',
-        'custo_formatado', 'usuario'
+        'created_at', 'produto', 'tipo_badge', 'motivo', 'quantidade_badge',
+        'valor_formatado', 'usuario'
     ]
-    list_filter = ['tipo', 'data_hora', 'produto__categoria']
-    search_fields = ['produto__nome', 'produto__codigo', 'motivo']
+    list_filter = ['tipo', 'motivo', 'created_at', 'produto__categoria']
+    search_fields = ['produto__nome', 'produto__codigo', 'documento']
     autocomplete_fields = ['produto', 'usuario', 'ordem_servico', 'venda']
-    readonly_fields = ['data_hora', 'quantidade_anterior', 'quantidade_posterior']
-    date_hierarchy = 'data_hora'
+    readonly_fields = ['created_at', 'estoque_anterior', 'estoque_posterior']
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('Produto', {
+            'fields': ('produto',)
+        }),
+        ('Movimentação', {
+            'fields': ('tipo', 'motivo', 'quantidade')
+        }),
+        ('Estoque', {
+            'fields': ('estoque_anterior', 'estoque_posterior'),
+            'classes': ('collapse',)
+        }),
+        ('Valores', {
+            'fields': ('valor_unitario',)
+        }),
+        ('Referências', {
+            'fields': ('ordem_servico', 'venda', 'documento'),
+            'classes': ('collapse',)
+        }),
+        ('Responsável', {
+            'fields': ('usuario',)
+        }),
+        ('Observações', {
+            'fields': ('observacoes',),
+            'classes': ('collapse',)
+        }),
+    )
 
     def tipo_badge(self, obj):
         cores = {
             'entrada': '#27ae60',
             'saida': '#e74c3c',
             'ajuste': '#f39c12',
-            'devolucao': '#3498db',
-            'transferencia': '#9b59b6',
         }
         cor = cores.get(obj.tipo, '#95a5a6')
         return format_html(
@@ -111,8 +140,8 @@ class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
     tipo_badge.short_description = "Tipo"
 
     def quantidade_badge(self, obj):
-        sinal = '+' if obj.tipo in ['entrada', 'devolucao'] else '-'
-        cor = 'green' if obj.tipo in ['entrada', 'devolucao'] else 'red'
+        sinal = '+' if obj.tipo == 'entrada' else '-'
+        cor = 'green' if obj.tipo == 'entrada' else 'red'
         if obj.tipo == 'ajuste':
             sinal = '±'
             cor = 'orange'
@@ -122,60 +151,52 @@ class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
         )
     quantidade_badge.short_description = "Qtd"
 
-    def custo_formatado(self, obj):
-        if obj.custo_unitario:
-            return f"R$ {obj.custo_unitario:,.2f}"
+    def valor_formatado(self, obj):
+        if obj.valor_unitario:
+            return f"R$ {obj.valor_unitario:,.2f}"
         return "-"
-    custo_formatado.short_description = "Custo Unit."
+    valor_formatado.short_description = "Valor Unit."
 
 
 @admin.register(Inventario)
 class InventarioAdmin(admin.ModelAdmin):
     """Admin para inventários."""
     list_display = [
-        'produto', 'data_inventario', 'quantidade_sistema', 'quantidade_contada',
-        'diferenca_badge', 'realizado_por'
+        'data', 'status_badge', 'responsavel', 'total_itens', 'divergencias'
     ]
-    list_filter = ['data_inventario', 'ajuste_realizado']
-    search_fields = ['produto__nome', 'produto__codigo']
-    autocomplete_fields = ['produto', 'realizado_por']
-    readonly_fields = ['diferenca']
-    date_hierarchy = 'data_inventario'
+    list_filter = ['status', 'data']
+    search_fields = ['observacoes']
+    autocomplete_fields = ['responsavel']
+    readonly_fields = ['created_at', 'updated_at']
+    date_hierarchy = 'data'
 
-    def diferenca_badge(self, obj):
-        if obj.diferenca == 0:
-            return format_html('<span style="color: green;">OK</span>')
-        elif obj.diferenca > 0:
-            return format_html(
-                '<span style="color: blue;">+{}</span>',
-                obj.diferenca
-            )
-        else:
-            return format_html(
-                '<span style="color: red;">{}</span>',
-                obj.diferenca
-            )
-    diferenca_badge.short_description = "Diferença"
+    fieldsets = (
+        ('Inventário', {
+            'fields': ('data', 'status', 'responsavel')
+        }),
+        ('Totais', {
+            'fields': ('total_itens', 'divergencias')
+        }),
+        ('Observações', {
+            'fields': ('observacoes',),
+            'classes': ('collapse',)
+        }),
+        ('Datas do Sistema', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
-    actions = ['aplicar_ajuste']
-
-    @admin.action(description="Aplicar ajuste de estoque")
-    def aplicar_ajuste(self, request, queryset):
-        for inv in queryset.filter(ajuste_realizado=False):
-            if inv.diferenca != 0:
-                # Criar movimentação de ajuste
-                MovimentacaoEstoque.objects.create(
-                    produto=inv.produto,
-                    tipo='ajuste',
-                    quantidade=abs(inv.diferenca),
-                    quantidade_anterior=inv.quantidade_sistema,
-                    quantidade_posterior=inv.quantidade_contada,
-                    motivo=f"Ajuste de inventário - {inv.observacao or 'Sem observação'}",
-                    usuario=request.user
-                )
-                # Atualizar produto
-                inv.produto.quantidade_atual = inv.quantidade_contada
-                inv.produto.save()
-                # Marcar como ajustado
-                inv.ajuste_realizado = True
-                inv.save()
+    def status_badge(self, obj):
+        cores = {
+            'andamento': '#f39c12',
+            'finalizado': '#27ae60',
+            'cancelado': '#95a5a6',
+        }
+        cor = cores.get(obj.status, '#3498db')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; '
+            'border-radius: 3px; font-size: 11px;">{}</span>',
+            cor, obj.get_status_display()
+        )
+    status_badge.short_description = "Status"

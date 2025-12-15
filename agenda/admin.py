@@ -16,39 +16,39 @@ from .models import Agendamento, FollowUp, Tarefa
 class AgendamentoAdmin(admin.ModelAdmin):
     """Admin para agendamentos."""
     list_display = [
-        'titulo', 'cliente', 'tipo_badge', 'data_hora',
-        'duracao', 'responsavel', 'status_badge'
+        'titulo', 'cliente', 'tipo_badge', 'data', 'hora_inicio',
+        'duracao_estimada', 'responsavel', 'status_badge'
     ]
-    list_filter = ['tipo', 'status', 'responsavel', 'data_hora']
-    search_fields = ['titulo', 'cliente__nome', 'descricao']
-    autocomplete_fields = ['cliente', 'responsavel', 'venda', 'contrato_aluguel', 'ordem_servico']
-    readonly_fields = ['criado_em', 'atualizado_em']
-    date_hierarchy = 'data_hora'
+    list_filter = ['tipo', 'status', 'responsavel', 'data']
+    search_fields = ['titulo', 'cliente__nome', 'observacoes']
+    autocomplete_fields = ['cliente', 'responsavel', 'endereco']
+    readonly_fields = ['created_at', 'updated_at']
+    date_hierarchy = 'data'
 
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('titulo', 'tipo', 'cliente', 'responsavel')
         }),
         ('Data e Hora', {
-            'fields': ('data_hora', 'duracao')
+            'fields': ('data', 'hora_inicio', 'hora_fim', 'duracao_estimada')
         }),
         ('Local', {
-            'fields': ('local', 'endereco'),
-            'classes': ('collapse',)
-        }),
-        ('Vínculos', {
-            'fields': ('venda', 'contrato_aluguel', 'ordem_servico'),
+            'fields': ('local_descricao', 'endereco'),
             'classes': ('collapse',)
         }),
         ('Detalhes', {
-            'fields': ('descricao', 'status', 'resultado')
+            'fields': ('observacoes', 'status', 'resultado')
         }),
         ('Lembrete', {
-            'fields': ('lembrete_enviado', 'enviar_lembrete_minutos'),
+            'fields': ('lembrete_enviado', 'confirmacao_enviada'),
+            'classes': ('collapse',)
+        }),
+        ('Resultado', {
+            'fields': ('venda_realizada',),
             'classes': ('collapse',)
         }),
         ('Datas do Sistema', {
-            'fields': ('criado_em', 'atualizado_em'),
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
@@ -61,7 +61,6 @@ class AgendamentoAdmin(admin.ModelAdmin):
             'retirada': '#e67e22',
             'manutencao': '#f39c12',
             'reuniao': '#1abc9c',
-            'outro': '#95a5a6',
         }
         cor = cores.get(obj.tipo, '#95a5a6')
         return format_html(
@@ -77,7 +76,8 @@ class AgendamentoAdmin(admin.ModelAdmin):
             'confirmado': '#27ae60',
             'realizado': '#2ecc71',
             'cancelado': '#e74c3c',
-            'reagendado': '#f39c12',
+            'remarcado': '#f39c12',
+            'nao_compareceu': '#95a5a6',
         }
         cor = cores.get(obj.status, '#95a5a6')
         return format_html(
@@ -102,13 +102,13 @@ class AgendamentoAdmin(admin.ModelAdmin):
 class FollowUpAdmin(admin.ModelAdmin):
     """Admin para follow-ups."""
     list_display = [
-        'cliente', 'tipo', 'data_prevista', 'prioridade_badge',
-        'responsavel', 'concluido_badge'
+        'assunto', 'cliente', 'tipo', 'data_prevista', 'prioridade_badge',
+        'responsavel', 'status_badge'
     ]
-    list_filter = ['tipo', 'prioridade', 'concluido', 'responsavel']
-    search_fields = ['cliente__nome', 'descricao']
+    list_filter = ['tipo', 'prioridade', 'status', 'responsavel']
+    search_fields = ['cliente__nome', 'assunto', 'descricao']
     autocomplete_fields = ['cliente', 'responsavel']
-    readonly_fields = ['criado_em']
+    readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'data_prevista'
 
     def prioridade_badge(self, obj):
@@ -126,47 +126,49 @@ class FollowUpAdmin(admin.ModelAdmin):
         )
     prioridade_badge.short_description = "Prioridade"
 
-    def concluido_badge(self, obj):
-        if obj.concluido:
-            return format_html(
-                '<span style="color: green;">✓ Concluído</span>'
-            )
-        return format_html('<span style="color: orange;">Pendente</span>')
-    concluido_badge.short_description = "Status"
+    def status_badge(self, obj):
+        cores = {
+            'pendente': '#f39c12',
+            'realizado': '#27ae60',
+            'cancelado': '#e74c3c',
+        }
+        cor = cores.get(obj.status, '#95a5a6')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; '
+            'border-radius: 3px; font-size: 11px;">{}</span>',
+            cor, obj.get_status_display()
+        )
+    status_badge.short_description = "Status"
 
-    actions = ['marcar_concluido']
+    actions = ['marcar_realizado']
 
-    @admin.action(description="Marcar como concluído")
-    def marcar_concluido(self, request, queryset):
-        queryset.update(concluido=True, data_conclusao=timezone.now())
+    @admin.action(description="Marcar como realizado")
+    def marcar_realizado(self, request, queryset):
+        queryset.update(status='realizado', data_realizacao=timezone.now())
 
 
 @admin.register(Tarefa)
 class TarefaAdmin(admin.ModelAdmin):
     """Admin para tarefas."""
     list_display = [
-        'titulo', 'responsavel', 'data_prazo', 'prioridade_badge',
-        'status_badge', 'criado_por'
+        'titulo', 'responsavel', 'data_limite', 'prioridade_badge',
+        'status_badge', 'created_by'
     ]
-    list_filter = ['status', 'prioridade', 'responsavel', 'criado_por']
+    list_filter = ['status', 'prioridade', 'responsavel', 'created_by']
     search_fields = ['titulo', 'descricao']
-    autocomplete_fields = ['responsavel', 'criado_por', 'cliente']
-    readonly_fields = ['criado_em', 'atualizado_em']
-    date_hierarchy = 'data_prazo'
+    autocomplete_fields = ['responsavel', 'created_by', 'cliente']
+    readonly_fields = ['created_at', 'updated_at']
+    date_hierarchy = 'data_limite'
 
     fieldsets = (
         ('Tarefa', {
             'fields': ('titulo', 'descricao', 'responsavel', 'cliente')
         }),
         ('Prazo e Prioridade', {
-            'fields': ('data_prazo', 'prioridade', 'status')
-        }),
-        ('Resultado', {
-            'fields': ('resultado',),
-            'classes': ('collapse',)
+            'fields': ('data_limite', 'prioridade', 'status')
         }),
         ('Auditoria', {
-            'fields': ('criado_por', 'criado_em', 'atualizado_em'),
+            'fields': ('created_by', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
@@ -189,7 +191,7 @@ class TarefaAdmin(admin.ModelAdmin):
     def status_badge(self, obj):
         cores = {
             'pendente': '#f39c12',
-            'em_andamento': '#3498db',
+            'andamento': '#3498db',
             'concluida': '#27ae60',
             'cancelada': '#e74c3c',
         }
@@ -209,4 +211,4 @@ class TarefaAdmin(admin.ModelAdmin):
 
     @admin.action(description="Iniciar tarefa")
     def iniciar_tarefa(self, request, queryset):
-        queryset.filter(status='pendente').update(status='em_andamento')
+        queryset.filter(status='pendente').update(status='andamento')

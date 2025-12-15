@@ -30,9 +30,9 @@ aiohttp==3.9.3
 Pillow==10.2.0
 
 # PDF Generation (Notas Fiscais)
-reportlab==4.1.0
+reportlab>=3.5.53,<4  # Compatible with xhtml2pdf
 xhtml2pdf==0.2.11
-weasyprint==61.0
+# weasyprint==61.0  # Commented - complex dependencies
 
 # Excel/CSV Export
 openpyxl==3.1.2
@@ -64,7 +64,7 @@ factory-boy==3.3.0
 # Development Tools
 django-debug-toolbar==4.2.0
 django-extensions==3.2.3
-ipython==8.21.0
+ipython>=7.0.0,<8.19.0  # Compatible with Python 3.9
 
 # Date/Time
 python-dateutil==2.8.2
