@@ -1,0 +1,74 @@
+name: liferainbow
+description: "Life Rainbow 2.0 - Sistema de Gestão Empresarial"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.4.10
+
+  # HTTP & API
+  dio: ^5.4.0
+
+  # Auth & Storage
+  flutter_secure_storage: ^9.0.0
+  jwt_decoder: ^2.0.1
+
+  # UI Components
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+
+  # Forms
+  flutter_form_builder: ^9.4.1
+  form_builder_validators: ^11.0.0
+
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.2.4
+
+  # Calendar
+  table_calendar: ^3.0.9
+
+  # Charts
+  fl_chart: ^0.66.2
+
+  # Formatters
+  mask_text_input_formatter: ^2.9.0
+
+  # Icons
+  phosphor_flutter: ^2.0.1
+
+  # Camera & Images
+  image_picker: ^1.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700

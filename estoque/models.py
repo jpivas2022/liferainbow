@@ -164,6 +164,7 @@ class MovimentacaoEstoque(models.Model):
     MOTIVO_VENDA = 'venda'
     MOTIVO_DEVOLUCAO = 'devolucao'
     MOTIVO_MANUTENCAO = 'manutencao'
+    MOTIVO_USO_INTERNO = 'uso_interno'
     MOTIVO_PERDA = 'perda'
     MOTIVO_INVENTARIO = 'inventario'
     MOTIVO_TRANSFERENCIA = 'transferencia'
@@ -172,6 +173,7 @@ class MovimentacaoEstoque(models.Model):
         (MOTIVO_VENDA, 'Venda'),
         (MOTIVO_DEVOLUCAO, 'Devolução'),
         (MOTIVO_MANUTENCAO, 'Manutenção/OS'),
+        (MOTIVO_USO_INTERNO, 'Uso Interno'),
         (MOTIVO_PERDA, 'Perda/Avaria'),
         (MOTIVO_INVENTARIO, 'Ajuste de Inventário'),
         (MOTIVO_TRANSFERENCIA, 'Transferência'),

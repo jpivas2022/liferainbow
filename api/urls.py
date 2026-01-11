@@ -47,6 +47,10 @@ from .views import (
     DashboardAPIView,
     AIAssistantAPIView,
     WhatsAppWebhookAPIView,
+    # Google Places API
+    places_autocomplete,
+    places_details,
+    places_by_cep,
 )
 
 # =============================================================================
@@ -121,6 +125,11 @@ urlpatterns = [
         EnderecoViewSet.as_view({'get': 'list', 'post': 'create'}),
         name='cliente-enderecos'
     ),
+
+    # Google Places API - Autocomplete de endereço
+    path('places/autocomplete/', places_autocomplete, name='places-autocomplete'),
+    path('places/details/', places_details, name='places-details'),
+    path('places/cep/', places_by_cep, name='places-cep'),
 ]
 
 

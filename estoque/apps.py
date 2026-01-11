@@ -5,3 +5,7 @@ class EstoqueConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'estoque'
     verbose_name = 'Gestão de Estoque'
+
+    def ready(self):
+        """Carrega os signals de integração com OS."""
+        import estoque.signals  # noqa: F401

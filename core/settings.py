@@ -9,9 +9,13 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carregar variáveis do arquivo .env
+load_dotenv(BASE_DIR / '.env')
 
 # =============================================================================
 # SECURITY SETTINGS
@@ -192,6 +196,8 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    # Serializer customizado com role e permissões
+    'TOKEN_OBTAIN_SERIALIZER': 'api.serializers.CustomTokenObtainPairSerializer',
 }
 
 # =============================================================================
@@ -212,6 +218,12 @@ CORS_ALLOW_CREDENTIALS = True
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
 OPENAI_MAX_TOKENS = int(os.environ.get('OPENAI_MAX_TOKENS', '2000'))
+
+# =============================================================================
+# GOOGLE MAPS API SETTINGS (Life Rainbow - API separada do iCiclo)
+# =============================================================================
+
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
 # =============================================================================
 # WHATSAPP BUSINESS API SETTINGS

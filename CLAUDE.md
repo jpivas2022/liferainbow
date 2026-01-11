@@ -217,8 +217,8 @@ REDIS_URL=redis://localhost:6379/0
 # Ativar ambiente
 source venv/bin/activate
 
-# Rodar servidor
-python manage.py runserver
+# Rodar servidor (PORTA 8001 - evitar conflito com iCiclo na 8000)
+python manage.py runserver 8001
 
 # Criar migrações
 python manage.py makemigrations
@@ -316,6 +316,36 @@ gcloud run deploy liferainbow \
 
 ---
 
+## 🗺️ Google Places API - Autocomplete de Endereço (NOVO!)
+
+### Implementação Separada do iCiclo
+**IMPORTANTE:** Life Rainbow e iCiclo são empresas diferentes. Cada projeto tem sua própria API key do Google Maps.
+
+### Endpoints Disponíveis
+```
+GET /api/v1/places/autocomplete/?input=Av Paulista  # Autocomplete Google Places
+GET /api/v1/places/details/?place_id=ChIJ...        # Detalhes do endereço
+GET /api/v1/places/cep/?cep=01310100                # Busca por CEP (ViaCEP grátis)
+```
+
+### Arquivos Criados (Flutter)
+- `lib/services/places_service.dart` - Serviço de busca de endereços
+- `lib/widgets/address/address_autocomplete_field.dart` - Widget de autocomplete
+
+### Configuração da API Key
+1. Criar projeto no Google Cloud Console (separado do iCiclo!)
+2. Habilitar APIs: Places API, Geocoding API
+3. Criar credencial (API Key)
+4. Adicionar no `.env`:
+   ```
+   GOOGLE_MAPS_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+
+### Fallback Gratuito
+O endpoint `/api/v1/places/cep/` usa ViaCEP (API brasileira gratuita) como alternativa ao Google Maps.
+
+---
+
 ## 🔗 Relacionamento com iCiclo
 
 Este projeto é **separado** do iCiclo, mas desenvolvido pelo mesmo time:
@@ -323,9 +353,9 @@ Este projeto é **separado** do iCiclo, mas desenvolvido pelo mesmo time:
 | Projeto | Localização | Tecnologia |
 |---------|-------------|------------|
 | iCiclo | `/Users/iciclodev/Development/iciclo-django/` | Django + Flutter |
-| Life Rainbow | `/Users/iciclodev/Development/liferainbow/` | Django (API) |
+| Life Rainbow | `/Users/iciclodev/Development/liferainbow/` | Django + Flutter |
 
-O Life Rainbow pode futuramente ter um app Flutter similar ao iCiclo, mas por enquanto é apenas API + Admin Django.
+**IMPORTANTE:** Cada projeto tem suas próprias APIs (Google Maps, OpenAI, etc.) - nunca compartilhar credenciais entre projetos.
 
 ---
 
@@ -410,5 +440,5 @@ Usar strings para ForeignKey: `ForeignKey('app.Model')`
 
 ---
 
-**Última atualização:** Dezembro 2025
-**Versão:** 2.0.0
+**Última atualização:** Janeiro 2026
+**Versão:** 2.1.0 (+ Autocomplete de Endereço com Google Places API)

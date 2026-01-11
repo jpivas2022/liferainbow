@@ -167,7 +167,7 @@ class ContaReceber(models.Model):
         verbose_name='Documento/Referência'
     )
 
-    # Origem (venda ou aluguel)
+    # Origem (venda, aluguel ou ordem de servico)
     venda = models.ForeignKey(
         'vendas.Venda',
         on_delete=models.SET_NULL,
@@ -183,6 +183,14 @@ class ContaReceber(models.Model):
         blank=True,
         related_name='contas_receber',
         verbose_name='Contrato de Aluguel'
+    )
+    ordem_servico = models.ForeignKey(
+        'assistencia.OrdemServico',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contas_receber',
+        verbose_name='Ordem de Servico'
     )
 
     # Responsável

@@ -17,9 +17,15 @@ class ItemVendaInline(admin.TabularInline):
     """Inline para itens da venda."""
     model = ItemVenda
     extra = 1
-    fields = ['modelo', 'equipamento', 'quantidade', 'valor_unitario', 'desconto', 'valor_total']
-    autocomplete_fields = ['equipamento', 'modelo']
+    fields = [
+        'modelo', 'equipamento', 'produto',  # produto = item do estoque
+        'quantidade', 'valor_unitario', 'desconto', 'valor_total'
+    ]
+    autocomplete_fields = ['equipamento', 'modelo', 'produto']
     readonly_fields = ['valor_total']
+
+    class Media:
+        js = ('admin/js/item_venda_estoque.js',)  # Script para validar estoque (futuro)
 
 
 class ParcelaInline(admin.TabularInline):

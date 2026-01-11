@@ -224,6 +224,10 @@ class OrdemServico(models.Model):
 class ItemOrdemServico(models.Model):
     """
     Itens/peças utilizados em uma ordem de serviço.
+
+    Integração com Estoque:
+    - Se produto estiver vinculado, valida disponibilidade
+    - Signals em estoque/signals.py fazem baixa/devolução automática
     """
 
     ordem_servico = models.ForeignKey(
@@ -257,8 +261,12 @@ class ItemOrdemServico(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Produto'
+        verbose_name='Produto',
+        related_name='itens_os'
     )
+
+    # Campo para armazenar usuário (usado pelo signal)
+    _usuario = None
 
     class Meta:
         verbose_name = 'Item da OS'
@@ -267,6 +275,46 @@ class ItemOrdemServico(models.Model):
     def __str__(self):
         return f"{self.quantidade}x {self.descricao}"
 
+    def clean(self):
+        """Valida disponibilidade de estoque antes de salvar."""
+        from django.core.exceptions import ValidationError
+
+        if self.produto and self.quantidade:
+            # Apenas valida em novos itens (não edição)
+            if not self.pk:
+                if self.produto.estoque_atual < self.quantidade:
+                    raise ValidationError({
+                        'quantidade': (
+                            f"Estoque insuficiente para '{self.produto.nome}': "
+                            f"disponível {self.produto.estoque_atual}, "
+                            f"solicitado {self.quantidade}"
+                        )
+                    })
+
     def save(self, *args, **kwargs):
+        # Extrair usuário dos kwargs se fornecido
+        usuario = kwargs.pop('usuario', None)
+        if usuario:
+            self._usuario = usuario
+
+        # Calcular valor total
         self.valor_total = self.valor_unitario * self.quantidade
+
+        # Validar antes de salvar
+        self.full_clean()
+
         super().save(*args, **kwargs)
+
+    @property
+    def tem_estoque(self):
+        """Verifica se há estoque disponível para este item."""
+        if not self.produto:
+            return True
+        return self.produto.estoque_atual >= self.quantidade
+
+    @property
+    def estoque_disponivel(self):
+        """Retorna o estoque disponível do produto vinculado."""
+        if not self.produto:
+            return None
+        return self.produto.estoque_atual

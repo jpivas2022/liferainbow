@@ -260,6 +260,10 @@ class Venda(models.Model):
 class ItemVenda(models.Model):
     """
     Itens individuais de uma venda.
+
+    Pode conter:
+    - Equipamento Rainbow (com número de série) → usa 'equipamento' + 'modelo'
+    - Peça/Acessório do estoque → usa 'produto'
     """
 
     venda = models.ForeignKey(
@@ -279,8 +283,20 @@ class ItemVenda(models.Model):
     modelo = models.ForeignKey(
         'equipamentos.ModeloEquipamento',
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='itens_venda',
         verbose_name='Modelo'
+    )
+    # Integração com Estoque - para peças e acessórios
+    produto = models.ForeignKey(
+        'estoque.Produto',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='itens_venda',
+        verbose_name='Produto do Estoque',
+        help_text='Para peças/acessórios do estoque (baixa automática)'
     )
 
     quantidade = models.IntegerField(
@@ -324,7 +340,11 @@ class ItemVenda(models.Model):
         verbose_name_plural = 'Itens da Venda'
 
     def __str__(self):
-        return f"{self.quantidade}x {self.modelo.nome}"
+        if self.produto:
+            return f"{self.quantidade}x {self.produto.nome}"
+        elif self.modelo:
+            return f"{self.quantidade}x {self.modelo.nome}"
+        return f"{self.quantidade}x Item"
 
     def save(self, *args, **kwargs):
         # Calcular valor total do item
